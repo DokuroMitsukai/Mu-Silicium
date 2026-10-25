@@ -1,5 +1,8 @@
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+!if $(BOOT_DIAGNOSTICS) == 1
+  INF hero2ltePkg/Drivers/BootMarkerDxe/BootMarkerDxe.inf
+!endif
   INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
   INF MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
   INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf

@@ -1,6 +1,9 @@
 APRIORI DXE {
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+!if $(BOOT_DIAGNOSTICS) == 1
+  INF hero2ltePkg/Drivers/BootMarkerDxe/BootMarkerDxe.inf
+!endif
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
   INF MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf

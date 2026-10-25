@@ -18,8 +18,15 @@
   FLASH_DEFINITION               = hero2ltePkg/hero2lte.fdf
   USE_CUSTOM_DISPLAY_DRIVER      = 0
   UNIXNU_PAYLOAD                 = 0
+  BOOT_DIAGNOSTICS               = 0
 
 !include S5E8890Pkg/S5E8890Pkg.dsc.inc
+
+!if $(BOOT_DIAGNOSTICS) == 1
+[BuildOptions]
+  *_*_AARCH64_CC_FLAGS = -DBOOT_DIAGNOSTIC_FB=0xE2A00000
+  *_*_AARCH64_PP_FLAGS = -DBOOT_DIAGNOSTIC_FB=0xE2A00000
+!endif
 
 [PcdsFixedAtBuild]
   #
@@ -62,6 +69,9 @@
 !endif
 
 [Components]
+!if $(BOOT_DIAGNOSTICS) == 1
+  hero2ltePkg/Drivers/BootMarkerDxe/BootMarkerDxe.inf
+!endif
   SiliciumPkg/Drivers/KeypadDeviceDxe/KeypadDeviceDxe.inf
   SiliciumPkg/Drivers/KeypadDxe/KeypadDxe.inf
 

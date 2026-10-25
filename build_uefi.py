@@ -46,6 +46,7 @@ class BuildContext:
     enable_secureboot: bool
     cleanup:           bool
     update:            bool
+    boot_diagnostics:  bool
 
 def setup_logger ():
     global logger
@@ -80,6 +81,7 @@ def parse_arguments () -> BuildContext:
     parser.add_argument ("-s", "--enable-secureboot", action="store_true",                                       help="Enables Secure Boot.")
     parser.add_argument ("-c", "--clean",             action="store_true",                                       help="Removes Old Build Files and Starts a Clean Build.")
     parser.add_argument ("-u", "--update",            action="store_true",                                       help="Updates your Local Repo before Building.")
+    parser.add_argument ("--boot-diagnostics", action="store_true", help="Enable board-specific framebuffer boot markers.")
 
     # Parse Script Arguments
     args = parser.parse_args ()
@@ -91,7 +93,8 @@ def parse_arguments () -> BuildContext:
         build_mode        = args.release,
         enable_secureboot = args.enable_secureboot,
         cleanup           = args.clean,
-        update            = args.update
+        update            = args.update,
+        boot_diagnostics  = args.boot_diagnostics
     )
 
 def get_device_package_path (device: str) -> Path | None:
@@ -180,20 +183,25 @@ def update_local_repo () -> bool:
 
     return True
 
-def compile_boot_shim (boot_shim_config: dict, fd_config: dict) -> bool:
+def compile_boot_shim (boot_shim_config: dict, fd_config: dict, diagnostics: bool = False) -> bool:
     # Get FD Details
     fd_base = hex (fd_config.get ("base"))
     fd_size = hex (fd_config.get ("size"))
 
     # Get Kernel Header Flag
     requires_kernel_header = boot_shim_config.get ("requires_kernel_header", False)
+    marker_base = boot_shim_config.get ("diagnostic_framebuffer", 0) if diagnostics else 0
+    if diagnostics and not marker_base:
+        logger.error ("No Diagnostic Framebuffer is Configured for this Device!")
+        return False
 
     # Set Compile Command
     cmd = [
         "make",
         f"REQUIRES_KERNEL_HEADER={int (requires_kernel_header)}",
         f"FD_BASE={fd_base}",
-        f"FD_SIZE={fd_size}"
+        f"FD_SIZE={fd_size}",
+        f"BOOT_DIAGNOSTIC_FB={hex (marker_base)}"
     ]
 
     # Compile Boot Shim
@@ -228,6 +236,7 @@ def compile_uefi (ctx: BuildContext, fd_config: dict, script_path: Path) -> bool
         f"FD_BASE={fd_base}",
         f"FD_SIZE={fd_size}",
         f"FD_BLOCKS={fd_blocks}",
+        f"BOOT_DIAGNOSTICS={int (ctx.boot_diagnostics)}",
         f"DEVICE_MODEL={ctx.device_model}"
     ]
 
@@ -498,7 +507,7 @@ def main ():
 
     # Compile Boot Shim
     if boot_shim_present:
-        if not compile_boot_shim (config_data.get ("boot_shim"), config_data.get ("uefi_fd")):
+        if not compile_boot_shim (config_data.get ("boot_shim"), config_data.get ("uefi_fd"), ctx.boot_diagnostics):
             sys.exit (1)
 
     # Prepare UEFI Environment

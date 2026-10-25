@@ -15,6 +15,7 @@
 
 [boot_shim]
 requires_kernel_header = true
+diagnostic_framebuffer = 0xE2A00000 # Four 1440 x 32 bands, 32 bpp
 
 [uefi_fd]
 base = 0xC9000000
