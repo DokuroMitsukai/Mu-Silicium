@@ -47,6 +47,7 @@ class BuildContext:
     cleanup:           bool
     update:            bool
     boot_diagnostics:  bool
+    unixnu_payload:    bool
 
 def setup_logger ():
     global logger
@@ -82,6 +83,7 @@ def parse_arguments () -> BuildContext:
     parser.add_argument ("-c", "--clean",             action="store_true",                                       help="Removes Old Build Files and Starts a Clean Build.")
     parser.add_argument ("-u", "--update",            action="store_true",                                       help="Updates your Local Repo before Building.")
     parser.add_argument ("--boot-diagnostics", action="store_true", help="Enable board-specific framebuffer boot markers.")
+    parser.add_argument ("--unixnu", action="store_true", help="Include the UniXNU loader and Darwin boot payload.")
 
     # Parse Script Arguments
     args = parser.parse_args ()
@@ -94,7 +96,8 @@ def parse_arguments () -> BuildContext:
         enable_secureboot = args.enable_secureboot,
         cleanup           = args.clean,
         update            = args.update,
-        boot_diagnostics  = args.boot_diagnostics
+        boot_diagnostics  = args.boot_diagnostics,
+        unixnu_payload    = args.unixnu
     )
 
 def get_device_package_path (device: str) -> Path | None:
@@ -237,6 +240,7 @@ def compile_uefi (ctx: BuildContext, fd_config: dict, script_path: Path) -> bool
         f"FD_SIZE={fd_size}",
         f"FD_BLOCKS={fd_blocks}",
         f"BOOT_DIAGNOSTICS={int (ctx.boot_diagnostics)}",
+        f"UNIXNU_PAYLOAD={int (ctx.unixnu_payload)}",
         f"DEVICE_MODEL={ctx.device_model}"
     ]
 
