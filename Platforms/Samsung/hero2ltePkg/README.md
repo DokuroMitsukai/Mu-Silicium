@@ -67,6 +67,39 @@ signature acceptance, and DTBH is not consumed by UEFI itself.
 
 ## Still unresolved
 
+### Standalone entry/refresh probe
+
+The packaging-only and four-band images both remained on the Samsung splash;
+no bands were observed. Partition readback matched the diagnostic image exactly.
+
+The standalone probe removes FD relocation and UEFI from the experiment:
+
+```sh
+python3 src/Mu-Silicium/Resources/Scripts/test_hero2lte_entry_probe.py
+python3 src/Mu-Silicium/Resources/Scripts/make_hero2lte_entry_probe.py \
+  --template out/boot-uefi-samsung-diagnostic.img \
+  --output out/boot-hero2lte-entry-refresh.img
+```
+
+It replaces only the kernel bytes and Android image ID. Kernel length, ARM64
+header fields at offsets 8-63, ramdisk, DTBH and the complete trailer remain
+unchanged. There is no UEFI payload. It draws a white 128-line top band and
+repeatedly requests refresh without a stack, timer or interrupts. A visible
+band establishes entry into the probe, not execution of the earlier firmware.
+
+Unlike earlier markers, this probe modifies DECON trigger control at
+`0x13960070`: it clears HW trigger mask bit 5 when HW enable bit 4 is set,
+otherwise sets SW trigger bit 8. Other bits are preserved. These operations
+are corroborated by the captured device's S-Boot trigger routine and the
+Exynos 8890 kernel register definitions; they are not the old guessed 8895
+trigger value. It does not configure clocks, panel, GPIO or storage.
+
+No band remains inconclusive: scanout, access permissions, cache operations
+or an earlier bootloader stage could still prevent observation. A watchdog
+reset is possible because the probe intentionally does not boot an OS.
+
+### Remaining firmware issues
+
 - The heap overlaps DT `video_frame` and `video_scaler`; FD and stack overlap
   `video_scaler`. These regions are secure/reusable in the captured DT. That
   is not proof they are accessible at S-Boot handoff. No speculative relocation
