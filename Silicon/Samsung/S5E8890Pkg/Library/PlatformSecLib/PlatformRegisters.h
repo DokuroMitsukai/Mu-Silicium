@@ -1,0 +1,9 @@
+#ifndef _S5E8890_PLATFORM_REGISTERS_H_
+#define _S5E8890_PLATFORM_REGISTERS_H_
+
+//
+// Exynos 8890 Decon registers (Decon_F at 0x13960000).
+//
+#define HW_SW_TRIG_CONTROL 0x70
+
+#endif /* _S5E8890_PLATFORM_REGISTERS_H_ */

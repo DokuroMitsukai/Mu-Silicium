@@ -1,0 +1,5 @@
+[Defines]
+  DEC_SPECIFICATION                   = 0x00010005
+  PACKAGE_NAME                        = S5E8890Pkg
+  PACKAGE_GUID                        = 5E8890A1-8890-4A53-9C00-000000000001
+  PACKAGE_VERSION                     = 0.1
