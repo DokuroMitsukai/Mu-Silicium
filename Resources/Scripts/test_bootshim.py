@@ -28,10 +28,11 @@ with tempfile.TemporaryDirectory(dir=root) as directory:
             assert data[56:60] == b'ARM\x64'
             assert struct.unpack_from('<Q', data, 16)[0] == len(data) + size
         disassembly = subprocess.check_output(['llvm-objdump', '-d', str(obj)], text=True)
-        assert disassembly.count('dc\tcvac') == (2 if marker else 0)
+        assert disassembly.count('dc\tcvac') == (3 if marker else 1)
+        assert disassembly.count('ic\tiallu') == 1
         if marker:
             assert struct.pack('<Q', marker + 184320) in data
             assert struct.pack('<Q', 0x13960070) in data
             assert disassembly.count('stp\tx9, x9') == 2
-            assert disassembly.count('dsb\tsy') >= 2
+            assert disassembly.count('dsb\tsy') >= 5
         print(f'PASS: header={header}, base={base:#x}, size={size:#x}, marker={marker:#x}, shim={len(data)}')
