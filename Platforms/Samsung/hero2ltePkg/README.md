@@ -89,6 +89,10 @@ relocation to `0xC9000000`, SEC initialization, DXE dispatch and enough of
 GICv2/timer/keypad/SimpleFbDxe for BDS. It does not validate RAM ownership,
 every interrupt path, key input or power management.
 
+The non-diagnostic image `boot-uefi-samsung-plain.img` then produced the same
+logo and missing-OS screen. Display refresh therefore no longer depends on
+the diagnostic build.
+
 ## Display refresh
 
 `PlatformAssemblyInitialize` in `S5E8890Pkg/PlatformSecLib` now performs the
@@ -104,10 +108,14 @@ single refresh would be requested and a per-frame hook would then be required.
 
 ## Cache coherency
 
-BootShim now cleans the relocated FD to the point of coherency, invalidates
-the instruction cache and executes `dsb`/`isb` before branching. SEC already
-invalidated the FD range, but only after entry, and invalidation discards
-dirty lines rather than writing them back.
+BootShim derives the data cache line size from `CTR_EL0`, cleans the
+relocated FD to the point of coherency, executes `DSB`, invalidates the
+instruction cache, then executes `DSB`/`ISB` before branching. The first
+version hard-coded 64-byte lines and omitted the barrier between cleaning and
+invalidation; both are corrected.
+
+SEC already invalidated the FD range, but only after entry, and invalidation
+discards dirty lines rather than writing them back.
 
 ## Standalone entry/refresh probe
 

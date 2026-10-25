@@ -30,6 +30,13 @@ with tempfile.TemporaryDirectory(dir=root) as directory:
         disassembly = subprocess.check_output(['llvm-objdump', '-d', str(obj)], text=True)
         assert disassembly.count('dc\tcvac') == (3 if marker else 1)
         assert disassembly.count('ic\tiallu') == 1
+        lines = [line for line in disassembly.splitlines() if '\t' in line]
+        dc = max(i for i, line in enumerate(lines) if 'dc\tcvac' in line)
+        ic = next(i for i, line in enumerate(lines) if 'ic\tiallu' in line)
+        assert 'CTR_EL0' in disassembly, 'cache line size is hard-coded'
+        assert any('dsb\tsy' in line for line in lines[dc:ic]), 'no DSB between clean and invalidate'
+        assert any('dsb\tsy' in line for line in lines[ic:ic + 3])
+        assert any('isb' in line for line in lines[ic:ic + 5])
         if marker:
             assert struct.pack('<Q', marker + 184320) in data
             assert struct.pack('<Q', 0x13960070) in data

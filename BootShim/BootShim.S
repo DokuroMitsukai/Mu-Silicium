@@ -70,15 +70,20 @@ _Entry:
   marker 0x0000ff000000ff00, 184320 // Green: FD copied (or already in place).
   refresh
 #endif
-  // Clean the relocated FD to the point of coherency and drop stale
+  // Clean the relocated FD to the point of coherency, then drop stale
   // instruction cache lines before branching into it.
+  mrs   x7, ctr_el0
+  ubfx  x7, x7, #16, #4
+  mov   x8, #4
+  lsl   x7, x8, x7
   ldr   x6, =FD_BASE
-  ldr   x7, =FD_SIZE
+  ldr   x8, =FD_SIZE
 5:
   dc    cvac, x6
-  add   x6, x6, #64
-  subs  x7, x7, #64
+  add   x6, x6, x7
+  subs  x8, x8, x7
   b.ne  5b
+  dsb   sy
   ic    iallu
   dsb   sy
   isb
