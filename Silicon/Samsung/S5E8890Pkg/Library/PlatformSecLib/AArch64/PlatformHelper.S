@@ -18,6 +18,18 @@ ASM_FUNC (PlatformAssemblyInitialize)
   subs  w8, w8, #1
   b.ne  1b
   dsb   sy
+  // Same trigger handling validated by EntryProbe.S.
+  ldr   x10, =0x13960070
+2:
+  ldr   w11, [x10]
+  tbz   w11, #4, 3f
+  bic   w11, w11, #0x20
+  b     4f
+3:
+  orr   w11, w11, #0x100
+4:
+  str   w11, [x10]
+  dsb   sy
 #endif
   // Nothing to do here.
   ret

@@ -54,11 +54,13 @@ captured 1440-wide, 32-bpp framebuffer (0xE2A00000):
 | Blue, lines 64-95 | SEC assembly entry, before stack initialization |
 | Yellow, lines 96-127 | DXE dispatch, before CPU/GIC/timer drivers |
 
-Writes are cleaned to the point of coherency and followed by a barrier.
-No GPIO, storage or DECON control registers are changed by these markers.
+Writes are cleaned to the point of coherency and followed by a barrier. Every
+marker now also requests a DECON refresh using the trigger handling that the
+standalone entry probe validated on hardware. Only trigger-mode/pending bits
+at `0x13960070` are modified; clocks, panel, GPIO and storage are untouched.
 Film the display during any approved test; later drawing can overwrite them.
-Colors assume BGRA. Scanout address, stride and refresh remain unvalidated:
-**no visible bands is inconclusive**, not proof of S-Boot rejection.
+Colors assume BGRA. Refresh is validated, but scanout address and stride are
+not independently confirmed: **no visible bands is inconclusive**.
 
 The instrumented build changes both shim size and firmware contents. Do not
 attribute a different result solely to packaging unless the unchanged-kernel
@@ -84,19 +86,22 @@ python3 src/Mu-Silicium/Resources/Scripts/make_hero2lte_entry_probe.py \
 It replaces only the kernel bytes and Android image ID. Kernel length, ARM64
 header fields at offsets 8-63, ramdisk, DTBH and the complete trailer remain
 unchanged. There is no UEFI payload. It draws a white 128-line top band and
-repeatedly requests refresh without a stack, timer or interrupts. A visible
-band establishes entry into the probe, not execution of the earlier firmware.
+repeatedly requests refresh without a stack, timer or interrupts.
 
-Unlike earlier markers, this probe modifies DECON trigger control at
-`0x13960070`: it clears HW trigger mask bit 5 when HW enable bit 4 is set,
-otherwise sets SW trigger bit 8. Other bits are preserved. These operations
-are corroborated by the captured device's S-Boot trigger routine and the
-Exynos 8890 kernel register definitions; they are not the old guessed 8895
-trigger value. It does not configure clocks, panel, GPIO or storage.
+**Result on hardware:** the white band appeared. This proves S-Boot entered
+the probe's instructions and that the framebuffer plus the trigger method can
+produce visible output. It does not prove the earlier BootShim or UEFI ran.
 
-No band remains inconclusive: scanout, access permissions, cache operations
-or an earlier bootloader stage could still prevent observation. A watchdog
-reset is possible because the probe intentionally does not boot an OS.
+This probe modifies DECON trigger control at `0x13960070`: it clears HW
+trigger mask bit 5 when HW enable bit 4 is set, otherwise sets SW trigger bit
+8. Other bits are preserved. These operations are corroborated by the captured
+device's S-Boot trigger routine and the Exynos 8890 kernel register
+definitions; they are not the old guessed 8895 trigger value. It does not
+configure clocks, panel, GPIO or storage.
+
+For the probe alone, no band would have been inconclusive: access permissions,
+cache operations or an earlier bootloader stage could prevent observation. A
+watchdog reset is possible because the probe intentionally does not boot an OS.
 
 ### Remaining firmware issues
 

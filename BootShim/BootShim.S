@@ -12,6 +12,21 @@
   b.ne  1b
   dsb   sy
   .endm
+
+  // hero2lte: same trigger handling validated by EntryProbe.S.
+  .macro refresh
+  ldr   x10, =0x13960070
+2:
+  ldr   w11, [x10]
+  tbz   w11, #4, 3f
+  bic   w11, w11, #0x20
+  b     4f
+3:
+  orr   w11, w11, #0x100
+4:
+  str   w11, [x10]
+  dsb   sy
+  .endm
 #endif
 
 _Head:
@@ -35,6 +50,7 @@ _StackSize:
 _Start:
 #if BOOT_DIAGNOSTIC_FB
   marker 0x00ff000000ff0000, 0 // Red: shim entered, before FD writes.
+  refresh
 #endif
   mov   x4, x1
   ldr   x5, =FD_BASE
@@ -52,6 +68,7 @@ _CopyLoop:
 _Entry:
 #if BOOT_DIAGNOSTIC_FB
   marker 0x0000ff000000ff00, 184320 // Green: FD copied (or already in place).
+  refresh
 #endif
   br    x5
 

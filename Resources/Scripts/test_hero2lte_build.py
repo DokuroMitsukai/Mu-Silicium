@@ -16,7 +16,11 @@ _, parts, _ = unpack((root / 'Mu-hero2lte.img').read_bytes())
 shim = (root / 'BootShim/BootShim.bin').read_bytes()
 fd = (build / 'FV/SILICIUM_UEFI.fd').read_bytes()
 assert parts == [shim + fd, b'dummy', b'', b'']
-assert len(shim) == (208 if args.diagnostics else 112)
+if args.diagnostics:
+    assert 200 < len(shim) < 512
+    assert struct.pack('<Q', 0x13960070) in shim, 'refresh request missing'
+else:
+    assert len(shim) == 112
 assert len(fd) == 0x200000
 assert struct.unpack_from('<Q', shim, 16)[0] == len(parts[0])
 helper = build / ('AARCH64/S5E8890Pkg/Library/PlatformSecLib/'

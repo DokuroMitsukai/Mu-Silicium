@@ -16,6 +16,7 @@
   UefiDriverEntryPoint
   BaseMemoryLib
   CacheMaintenanceLib
+  IoLib
 
 [Depex]
   TRUE
