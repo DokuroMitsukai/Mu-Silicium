@@ -18,18 +18,18 @@ ASM_FUNC (PlatformAssemblyInitialize)
   subs  w8, w8, #1
   b.ne  1b
   dsb   sy
-  // Same trigger handling validated by EntryProbe.S.
+#endif
+  // Unmask DECON refresh, or request one SW refresh in SW-trigger mode.
+  // Without this the framebuffer stops updating after S-Boot's handoff.
   ldr   x10, =0x13960070
-2:
+5:
   ldr   w11, [x10]
-  tbz   w11, #4, 3f
+  tbz   w11, #4, 6f
   bic   w11, w11, #0x20
-  b     4f
-3:
+  b     7f
+6:
   orr   w11, w11, #0x100
-4:
+7:
   str   w11, [x10]
   dsb   sy
-#endif
-  // Nothing to do here.
   ret

@@ -21,7 +21,7 @@ PlatformInitialize ()
     return;
   }
 
-  // Preserve S-Boot's display state; the 8895 trigger value is not valid evidence.
+  // Refresh is enabled in PlatformAssemblyInitialize before this runs.
   DEBUG ((DEBUG_INFO, "DECON trigger: 0x%x\n",
           MmioRead32 (DeconRegion.Address + HW_SW_TRIG_CONTROL)));
 }

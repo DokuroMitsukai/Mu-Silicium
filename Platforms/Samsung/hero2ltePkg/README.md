@@ -1,9 +1,13 @@
-# hero2lte Phase 1 diagnostics
+# hero2lte bring-up
 
-The first standalone image stopped at the Samsung splash. Stock BOOT was
-restored and Android boots again. The splash does not establish that BootShim
-ran. Saved pmsg contains Android messages; saved compressed dmesg does not
-inflate successfully.
+Status: UEFI runs on SM-G935F hardware (bootloader `G935FXXS6ESI4`, hardware
+revision 9). The Project Silicium logo and "no bootable OS" screen appear.
+That screen is expected: this build has no storage driver or XNU payload yet.
+
+Earlier standalone and diagnostic images stopped at the Samsung splash. The
+standalone entry probe then showed a white band, isolating entry and refresh.
+Enabling the same refresh from the instrumented BootShim stages made the full
+firmware visible. Stock Android has been restored before those tests.
 
 ## Host checks
 
@@ -13,7 +17,11 @@ From the firmware repository:
 python3 Resources/Scripts/test_bootshim.py
 python3 Resources/Scripts/test_samsung_boot.py
 python3 Resources/Scripts/test_hero2lte_keypad.py
+python3 Resources/Scripts/test_hero2lte_entry_probe.py
 ```
+
+After a build, `test_hero2lte_build.py [--diagnostics]` checks the image,
+shim size, forwarded flags and SEC/DXE content.
 
 ## Controlled image variants
 
@@ -55,21 +63,53 @@ captured 1440-wide, 32-bpp framebuffer (0xE2A00000):
 | Yellow, lines 96-127 | DXE dispatch, before CPU/GIC/timer drivers |
 
 Writes are cleaned to the point of coherency and followed by a barrier. Every
-marker now also requests a DECON refresh using the trigger handling that the
-standalone entry probe validated on hardware. Only trigger-mode/pending bits
-at `0x13960070` are modified; clocks, panel, GPIO and storage are untouched.
-Film the display during any approved test; later drawing can overwrite them.
-Colors assume BGRA. Refresh is validated, but scanout address and stride are
-not independently confirmed: **no visible bands is inconclusive**.
+marker also requests a DECON refresh using the trigger handling that the
+standalone entry probe validated on hardware. Markers are diagnostic only;
+refresh itself is now enabled unconditionally by SEC (see below).
+
+Film the display during any approved test; later drawing can overwrite the
+bands. Colors assume BGRA. Scanout address and stride match S-Boot's captured
+configuration, but are not independently varied: **no visible bands is
+inconclusive**.
 
 The instrumented build changes both shim size and firmware contents. Do not
 attribute a different result solely to packaging unless the unchanged-kernel
 variant was tested separately. Preserving DTBH/footer does not establish
 signature acceptance, and DTBH is not consumed by UEFI itself.
 
-## Still unresolved
+## Hardware result
 
-### Standalone entry/refresh probe
+The flashed image `out/boot-uefi-samsung-refresh.img` reached the full UEFI
+UI: Project Silicium logo and the "failed to find an operating system" screen.
+That is the expected end state because there is no storage driver or XNU
+payload in this build.
+
+This validates the preserved Samsung container, BootShim execution, FD
+relocation to `0xC9000000`, SEC initialization, DXE dispatch and enough of
+GICv2/timer/keypad/SimpleFbDxe for BDS. It does not validate RAM ownership,
+every interrupt path, key input or power management.
+
+## Display refresh
+
+`PlatformAssemblyInitialize` in `S5E8890Pkg/PlatformSecLib` now performs the
+trigger update unconditionally, before the stack or HOBs exist. If HW trigger
+enable (bit 4) is set it clears HW mask bit 5; otherwise it sets SW trigger bit
+8. Other bits are preserved. Hardware-observed behavior shows the HW path is
+active after unmasking, so continuous TE refresh is restored without a
+per-frame hook.
+
+Only `0x13960070` is touched. S-Boot's panel, clock and DECON configuration is
+otherwise left alone. If a future handoff leaves DECON in SW-trigger mode, a
+single refresh would be requested and a per-frame hook would then be required.
+
+## Cache coherency
+
+BootShim now cleans the relocated FD to the point of coherency, invalidates
+the instruction cache and executes `dsb`/`isb` before branching. SEC already
+invalidated the FD range, but only after entry, and invalidation discards
+dirty lines rather than writing them back.
+
+## Standalone entry/refresh probe
 
 The packaging-only and four-band images both remained on the Samsung splash;
 no bands were observed. Partition readback matched the diagnostic image exactly.
@@ -90,7 +130,7 @@ repeatedly requests refresh without a stack, timer or interrupts.
 
 **Result on hardware:** the white band appeared. This proves S-Boot entered
 the probe's instructions and that the framebuffer plus the trigger method can
-produce visible output. It does not prove the earlier BootShim or UEFI ran.
+produce visible output. It did not, by itself, prove BootShim or UEFI ran.
 
 This probe modifies DECON trigger control at `0x13960070`: it clears HW
 trigger mask bit 5 when HW enable bit 4 is set, otherwise sets SW trigger bit
@@ -103,16 +143,27 @@ For the probe alone, no band would have been inconclusive: access permissions,
 cache operations or an earlier bootloader stage could prevent observation. A
 watchdog reset is possible because the probe intentionally does not boot an OS.
 
-### Remaining firmware issues
+## Remaining firmware issues
 
-- The heap overlaps DT `video_frame` and `video_scaler`; FD and stack overlap
-  `video_scaler`. These regions are secure/reusable in the captured DT. That
-  is not proof they are accessible at S-Boot handoff. No speculative relocation
-  has been made.
-- BootShim inherits S-Boot's MMU/cache/exception-level state. A green marker
-  proves the copy loop returned, not that instruction fetch or RAM ownership
-  is correct.
-- Architectural-timer PPIs and display refresh are not hardware validated.
+- **Memory ownership is still provisional.** The heap overlaps DT
+  `video_frame` and `video_scaler`; FD and stack overlap `video_scaler`. These
+  pools are marked secure/reusable. Execution proves the current addresses are
+  writable and executable at handoff, not that they are safe for XNU. A
+  candidate free gap exists at `0xB1200000`-`0xC0000000`, but it must be
+  validated before moving anything.
+- **Keypad is untested on hardware.** GPIO ALIVE `0x10580000` matches the DT
+  `pinctrl@10580000`; mappings match `gpio_keys` (GPA0[3] volume up, GPA0[4]
+  volume down, GPA0[5] home, GPA2[4] power). Mux/pull state is assumed to be
+  left by S-Boot.
+- **Timer and interrupt behavior is only exercised far enough for BDS.** Menu
+  timeouts and repeated updates still need observation.
+- **No storage driver.** UFS is mapped in the memory map but not initialized,
+  so no bootable OS can be found.
+- `UNIXNU_PAYLOAD` is now forwarded (`--unixnu`), but this tree does not
+  contain `UniXNUPkg` or `DarwinBootPkg`. Enabling the flag will fail until
+  those packages are integrated.
+- The firmware volume uses `0x6b730` of `0x200000` bytes. The remaining space
+  is sufficient for the small UniXNU loader set.
 - RELEASE has no framebuffer serial logging. DEBUG has more logging, but also
   clears the framebuffer during SEC and is a separate experiment.
 
