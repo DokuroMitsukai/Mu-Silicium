@@ -7,7 +7,7 @@ _StackBase:
   .quad FD_BASE         /* Text Offset */
 
 _StackSize:
-  .quad FD_SIZE         /* Image Size */
+  .quad FD_SIZE + (_Payload - _Head) /* Shim and appended FD */
   .quad 0               /* Flags */
   .quad 0               /* Reserved */
   .quad 0               /* Reserved */
@@ -37,6 +37,7 @@ _Dead:
   b     _Dead
 
 .text
+.ltorg
 .align 4
 
 _Payload:
