@@ -1,0 +1,32 @@
+#
+# Boot Shim and Android boot image configuration for the Galaxy S7 Edge.
+#
+# Addresses from the captured Samsung legacy boot header:
+#   base          0x10000000
+#   kernel        base + 0x00008000 = 0x10008000
+#   ramdisk       base + 0x01000000 = 0x11000000
+#   tags          base + 0x00000100 = 0x10000100
+#
+# BootShim copies the appended UEFI FD to 0xC9000000 before entering it; that
+# address is also recorded in hero2ltePkg's memory map.
+# Stock images also carry DTBH (size at offset 40) and SEANDROIDENFORCE.
+# This experimental image omits them; S-Boot acceptance is untested.
+#
+
+[boot_shim]
+requires_kernel_header = true
+
+[uefi_fd]
+base = 0xC9000000
+size = 0x200000
+
+[boot_image_kernel]
+kernel_compression = "none"
+append_dtb         = false
+
+[boot_image]
+header_version  = 0
+base            = 0x10000000
+kernel_offset   = 0x00008000
+ramdisk_offset  = 0x01000000
+tags_offset     = 0x00000100

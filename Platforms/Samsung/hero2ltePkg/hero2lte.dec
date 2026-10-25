@@ -1,0 +1,5 @@
+[Defines]
+  DEC_SPECIFICATION                   = 0x00010005
+  PACKAGE_NAME                        = hero2ltePkg
+  PACKAGE_GUID                        = 7A9E4C2D-3B1F-4C6A-9D8E-2F5A1B7C9E02
+  PACKAGE_VERSION                     = 0.1
