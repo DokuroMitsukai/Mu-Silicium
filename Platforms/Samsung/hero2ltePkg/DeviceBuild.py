@@ -162,6 +162,7 @@ class PlatformBuilder (UefiBuilder, BuildSettingsManager):
         self.env.SetValue ("BLD_*_FD_BLOCKS", self.env.GetValue("FD_BLOCKS"), "Default")
         self.env.SetValue ("BLD_*_BOOT_DIAGNOSTICS", self.env.GetValue("BOOT_DIAGNOSTICS") or "0", "Default")
         self.env.SetValue ("BLD_*_UNIXNU_PAYLOAD", self.env.GetValue("UNIXNU_PAYLOAD") or "0", "Default")
+        self.env.SetValue ("BLD_*_BRINGUP_TEST", self.env.GetValue("BRINGUP_TEST") or "0", "Default")
 
         return 0
 

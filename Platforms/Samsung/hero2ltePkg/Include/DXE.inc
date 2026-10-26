@@ -3,6 +3,9 @@
 !if $(BOOT_DIAGNOSTICS) == 1
   INF hero2ltePkg/Drivers/BootMarkerDxe/BootMarkerDxe.inf
 !endif
+!if $(BRINGUP_TEST) == 1
+  INF hero2ltePkg/Drivers/BringupTestDxe/BringupTestDxe.inf
+!endif
   INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
   INF MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
   INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf

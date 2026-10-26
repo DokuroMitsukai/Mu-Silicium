@@ -7,8 +7,11 @@
 #   ramdisk       base + 0x01000000 = 0x11000000
 #   tags          base + 0x00000100 = 0x10000100
 #
-# BootShim copies the appended UEFI FD to 0xC9000000 before entering it; that
-# address is also recorded in hero2ltePkg's memory map.
+# BootShim copies the appended UEFI FD to 0xB1200000 before entering it.
+# DT /proc/iomem evidence: 0xB1200000-0xC0000000 is unreserved System RAM,
+# above S-Boot (linked at 0x02000000), the kernel window (0x80080000-
+# 0x81040000) and the ramdisk (0x89000000), and below the ION secure pools
+# at 0xC0000000.  The address is also recorded in hero2ltePkg's memory map.
 # Stock images also carry DTBH (size at offset 40) and SEANDROIDENFORCE.
 # This experimental image omits them; S-Boot acceptance is untested.
 #
@@ -18,7 +21,7 @@ requires_kernel_header = true
 diagnostic_framebuffer = 0xE2A00000 # Four 1440 x 32 bands, 32 bpp
 
 [uefi_fd]
-base = 0xC9000000
+base = 0xB1200000
 size = 0x200000
 
 [boot_image_kernel]

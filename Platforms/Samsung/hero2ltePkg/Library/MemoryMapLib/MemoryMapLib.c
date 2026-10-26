@@ -6,11 +6,13 @@ gMemoryDescriptor[] = {
   // Name, Address, Length, HobOption, ResourceType, ResourceAttribute, MemoryType, ArmAttribute
 
   // DDR Regions
-  // Provisional dreamlte layout; overlaps DT video_frame/video_scaler pools.
-  // Secure accessibility and S-Boot ownership require hardware validation.
-  {"DXE Heap",           0xC3A00000, 0x05600000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
-  {"UEFI FD",            0xC9000000, 0x00200000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
-  {"UEFI Stack",         0xC9200000, 0x00040000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
+  // 0xB1200000-0xC0000000 is DT-advertised, unreserved System RAM. S-Boot
+  // lives at 0x02000000, the kernel window is 0x80080000-0x81040000 and the
+  // ramdisk is at 0x89000000, so this gap is free at handoff. The ION secure
+  // pools start at 0xC0000000; leave a guard below them.
+  {"UEFI FD",            0xB1200000, 0x00200000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
+  {"UEFI Stack",         0xB1400000, 0x00040000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
+  {"DXE Heap",           0xB1440000, 0x0EB00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
   {"Display Reserved",   0xE2A00000, 0x00E10000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH},
   {"RAM Partition",      0x880000000,0x80000000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK}, // 2GB
 

@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION    = 0x0001001B
+  BASE_NAME      = BringupTestDxe
+  FILE_GUID      = 497D0606-1600-4E38-B251-8890A117E002
+  MODULE_TYPE    = DXE_DRIVER
+  VERSION_STRING = 1.0
+  ENTRY_POINT    = BringupTestEntry
+
+[Sources]
+  BringupTest.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  CacheMaintenanceLib
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiSimpleTextInputExProtocolGuid
+
+[Depex]
+  TRUE

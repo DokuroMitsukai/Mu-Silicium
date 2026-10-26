@@ -19,6 +19,7 @@
   USE_CUSTOM_DISPLAY_DRIVER      = 0
   UNIXNU_PAYLOAD                 = 0
   BOOT_DIAGNOSTICS               = 0
+  BRINGUP_TEST                   = 0
 
 !include S5E8890Pkg/S5E8890Pkg.dsc.inc
 
@@ -37,7 +38,7 @@
   #
   # UEFI Stack
   #
-  gArmPlatformTokenSpaceGuid.PcdCPUCoresStackBase|0xC9200000
+  gArmPlatformTokenSpaceGuid.PcdCPUCoresStackBase|0xB1400000
   gArmPlatformTokenSpaceGuid.PcdCPUCorePrimaryStackSize|0x40000
 
   #
@@ -71,6 +72,9 @@
 [Components]
 !if $(BOOT_DIAGNOSTICS) == 1
   hero2ltePkg/Drivers/BootMarkerDxe/BootMarkerDxe.inf
+!endif
+!if $(BRINGUP_TEST) == 1
+  hero2ltePkg/Drivers/BringupTestDxe/BringupTestDxe.inf
 !endif
   SiliciumPkg/Drivers/KeypadDeviceDxe/KeypadDeviceDxe.inf
   SiliciumPkg/Drivers/KeypadDxe/KeypadDxe.inf

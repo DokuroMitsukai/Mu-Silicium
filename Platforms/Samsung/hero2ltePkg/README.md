@@ -20,8 +20,8 @@ python3 Resources/Scripts/test_hero2lte_keypad.py
 python3 Resources/Scripts/test_hero2lte_entry_probe.py
 ```
 
-After a build, `test_hero2lte_build.py [--diagnostics]` checks the image,
-shim size, forwarded flags and SEC/DXE content.
+After a build, `test_hero2lte_build.py [--diagnostics] [--bringup-test]`
+checks the image, shim size, forwarded flags and SEC/DXE content.
 
 ## Controlled image variants
 
@@ -77,6 +77,20 @@ attribute a different result solely to packaging unless the unchanged-kernel
 variant was tested separately. Preserving DTBH/footer does not establish
 signature acceptance, and DTBH is not consumed by UEFI itself.
 
+For the timer/keypad probe, with no bands:
+
+```sh
+./build-hero2lte.sh --bringup-test
+python3 src/Mu-Silicium/Resources/Scripts/test_hero2lte_build.py --bringup-test
+python3 src/Mu-Silicium/Resources/Scripts/repack_samsung_boot.py \
+  --stock flash/boot-stock.img --uefi src/Mu-Silicium/Mu-hero2lte.img \
+  --output out/boot-uefi-samsung-bringup.img
+```
+
+The default build already uses the new memory layout; repack it as
+`out/boot-uefi-samsung-safemem.img` and test that before the probe. The probe
+consumes no storage and leaves BDS input handling registered.
+
 ## Hardware result
 
 The flashed image `out/boot-uefi-samsung-refresh.img` reached the full UEFI
@@ -85,9 +99,10 @@ That is the expected end state because there is no storage driver or XNU
 payload in this build.
 
 This validates the preserved Samsung container, BootShim execution, FD
-relocation to `0xC9000000`, SEC initialization, DXE dispatch and enough of
-GICv2/timer/keypad/SimpleFbDxe for BDS. It does not validate RAM ownership,
-every interrupt path, key input or power management.
+relocation to `0xC9000000` (the address used at test time), SEC
+initialization, DXE dispatch and enough of GICv2/timer/keypad/SimpleFbDxe for
+BDS. It does not validate the new `0xB1200000` layout, every interrupt path,
+key input or power management.
 
 The non-diagnostic image `boot-uefi-samsung-plain.img` then produced the same
 logo and missing-OS screen. Display refresh therefore no longer depends on
@@ -110,9 +125,11 @@ single refresh would be requested and a per-frame hook would then be required.
 
 BootShim derives the data cache line size from `CTR_EL0`, cleans the
 relocated FD to the point of coherency, executes `DSB`, invalidates the
-instruction cache, then executes `DSB`/`ISB` before branching. The first
-version hard-coded 64-byte lines and omitted the barrier between cleaning and
-invalidation; both are corrected.
+instruction cache, then executes `DSB`/`ISB` before branching. The clean loop
+stops after the line containing the last FD byte, so it works for any FD size
+and does not touch a line after the image. The first version hard-coded
+64-byte lines, skipped the middle barrier and could clean one line past the
+image; all three are corrected.
 
 SEC already invalidated the FD range, but only after entry, and invalidation
 discards dirty lines rather than writing them back.
@@ -151,27 +168,70 @@ For the probe alone, no band would have been inconclusive: access permissions,
 cache operations or an earlier bootloader stage could prevent observation. A
 watchdog reset is possible because the probe intentionally does not boot an OS.
 
+## Memory layout
+
+The original dreamlte-derived layout put the heap over DT `video_frame` and
+`video_scaler`, and the FD/stack inside `video_scaler`. Those nodes are
+`secure` and `reusable`, so they are not a safe long-term home.
+
+The new layout uses the unreserved gap:
+
+| Region | Address | Size |
+| --- | --- | --- |
+| UEFI FD | `0xB1200000` | 2 MiB |
+| UEFI stack | `0xB1400000` | 256 KiB |
+| DXE heap | `0xB1440000` | 235 MiB, ending `0xBFF40000` |
+
+Evidence:
+
+- `memory@80000000` covers `0x80000000`-`0xFE400000`; the only reserved node in
+  the gap is TIMA at `0xB1000000`-`0xB1200000`.
+- S-Boot is linked at `0x02000000` (its literals reference addresses inside a
+  4 MiB image at that base).
+- S-Boot derives the kernel entry from `0x80000000 + (rand & 0x3f) * 0x4000 +
+  0x80000`, i.e. `0x80080000`-`0x81040000`, and loads the ramdisk at
+  `0x89000000`.
+- The ION pools start at `0xC0000000`; the heap leaves a 768 KiB guard below
+  them.
+
+This removes the UEFI overlap in source, pending hardware validation. It does
+not by itself define the XNU memory map: high RAM at `0x880000000`, the DT
+reserved pools and the handoff contract still need validation before XNU uses
+them.
+
+## Bring-up probe
+
+`--bringup-test` adds `BringupTestDxe`. It is a visible hardware test, not
+production UI:
+
+- a 120 px block at (20,20) alternates magenta/cyan every second, proving timer
+  ticks and repeated framebuffer refresh;
+- a 720 px bar at (20,180) turns red for volume up, green for volume down, blue
+  for home, white for power and yellow for other keys;
+- white blocks at (20,340) count accepted key notifies.
+
+The driver registers a UEFI timer event and a `SimpleTextInEx` key notify, so
+it leaves BDS input handling intact. It draws directly into the S-Boot
+framebuffer and does not initialize storage, clocks or panel.
+
 ## Remaining firmware issues
 
-- **Memory ownership is still provisional.** The heap overlaps DT
-  `video_frame` and `video_scaler`; FD and stack overlap `video_scaler`. These
-  pools are marked secure/reusable. Execution proves the current addresses are
-  writable and executable at handoff, not that they are safe for XNU. A
-  candidate free gap exists at `0xB1200000`-`0xC0000000`, but it must be
-  validated before moving anything.
-- **Keypad is untested on hardware.** GPIO ALIVE `0x10580000` matches the DT
-  `pinctrl@10580000`; mappings match `gpio_keys` (GPA0[3] volume up, GPA0[4]
+- **The new memory layout is untested on hardware.** The safemem image must
+  reach the logo before the bringup image is used. The old plain image is the
+  last hardware-validated artifact.
+- **Keypad is still untested on hardware.** GPIO ALIVE `0x10580000` matches the
+  DT `pinctrl@10580000`; mappings match `gpio_keys` (GPA0[3] volume up, GPA0[4]
   volume down, GPA0[5] home, GPA2[4] power). Mux/pull state is assumed to be
-  left by S-Boot.
-- **Timer and interrupt behavior is only exercised far enough for BDS.** Menu
-  timeouts and repeated updates still need observation.
+  left by S-Boot. `BringupTestDxe` is the probe.
+- **Timer and interrupt behavior is only exercised far enough for BDS.**
+  Repeated timer events and key notifies still need observation.
 - **No storage driver.** UFS is mapped in the memory map but not initialized,
   so no bootable OS can be found.
 - `UNIXNU_PAYLOAD` is now forwarded (`--unixnu`), but this tree does not
   contain `UniXNUPkg` or `DarwinBootPkg`. Enabling the flag will fail until
   those packages are integrated.
-- The firmware volume uses `0x6b730` of `0x200000` bytes. The remaining space
-  is sufficient for the small UniXNU loader set.
+- The firmware volume uses about `0x6a100` of `0x200000` bytes. The remaining
+  space is sufficient for the small UniXNU loader set.
 - RELEASE has no framebuffer serial logging. DEBUG has more logging, but also
   clears the framebuffer during SEC and is a separate experiment.
 

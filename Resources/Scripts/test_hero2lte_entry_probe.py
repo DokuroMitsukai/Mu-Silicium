@@ -30,7 +30,7 @@ class EntryProbeTest(unittest.TestCase):
         self.assertIn(struct.pack('<Q', 0x13960070), probe)
         kernel = bytearray(4096)
         kernel[56:60] = b'ARMd'
-        struct.pack_into('<QQ', kernel, 8, 0xC9000000, len(kernel))
+        struct.pack_into('<QQ', kernel, 8, 0xB1200000, len(kernel))
         template = fixture([bytes(kernel), b'dummy', b'', b'DTBH' + bytes(256)])
         result = make_probe(template, probe)
         _, parts, _ = unpack(result)
