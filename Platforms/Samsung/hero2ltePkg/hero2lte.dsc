@@ -67,6 +67,8 @@
 !if $(UNIXNU_PAYLOAD) == 1
   # UniXNU package, supplied by the device build tree.
   UniXNULib|UniXNUPkg/Library/UniXNULib/UniXNULib.inf
+  # DarwinBoot inflates the UEFI-compressed kernel from a boot image that does not fit the partition raw.
+  UefiDecompressLib|MdePkg/Library/BaseUefiDecompressLib/BaseUefiDecompressLib.inf
 !endif
 
 [Components]
