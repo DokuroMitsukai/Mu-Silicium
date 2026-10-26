@@ -98,15 +98,19 @@ UI: Project Silicium logo and the "failed to find an operating system" screen.
 That is the expected end state because there is no storage driver or XNU
 payload in this build.
 
-This validates the preserved Samsung container, BootShim execution, FD
-relocation to `0xC9000000` (the address used at test time), SEC
+This validates the preserved Samsung container, BootShim execution, SEC
 initialization, DXE dispatch and enough of GICv2/timer/keypad/SimpleFbDxe for
-BDS. It does not validate the new `0xB1200000` layout, every interrupt path,
-key input or power management.
+BDS.
 
 The non-diagnostic image `boot-uefi-samsung-plain.img` then produced the same
 logo and missing-OS screen. Display refresh therefore no longer depends on
 the diagnostic build.
+
+The safemem image reached the same UEFI UI, validating FD/stack/heap relocation
+to `0xB1200000`-`0xBFF40000`. The bring-up image then showed the top-left block
+alternating magenta/cyan once per second, accepted volume, home and power keys,
+and incremented the white counter. The phone was manually rebooted to TWRP
+afterward; no probe-triggered reset was observed.
 
 ## Display refresh
 
@@ -216,15 +220,16 @@ framebuffer and does not initialize storage, clocks or panel.
 
 ## Remaining firmware issues
 
-- **The new memory layout is untested on hardware.** The safemem image must
-  reach the logo before the bringup image is used. The old plain image is the
-  last hardware-validated artifact.
-- **Keypad is still untested on hardware.** GPIO ALIVE `0x10580000` matches the
-  DT `pinctrl@10580000`; mappings match `gpio_keys` (GPA0[3] volume up, GPA0[4]
-  volume down, GPA0[5] home, GPA2[4] power). Mux/pull state is assumed to be
-  left by S-Boot. `BringupTestDxe` is the probe.
-- **Timer and interrupt behavior is only exercised far enough for BDS.**
-  Repeated timer events and key notifies still need observation.
+- **UEFI timer, keypad and display are validated; XNU entry is next.** The
+  safemem and bring-up probes passed on hardware. GICv2 support in ArmCpu,
+  the XNU handoff, storage and power management remain.
+- **Keypad mux/pull state is still inherited from S-Boot.** GPIO ALIVE
+  `0x10580000` matches the DT `pinctrl@10580000`; mappings match `gpio_keys`
+  (GPA0[3] volume up, GPA0[4] volume down, GPA0[5] home, GPA2[4] power). The
+  probe confirms the pins are usable at handoff, not that a cold-boot driver
+  would configure them correctly.
+- **Timer events are validated at 200 ms.** Longer-running behavior and
+  interrupt latency under load remain unmeasured.
 - **No storage driver.** UFS is mapped in the memory map but not initialized,
   so no bootable OS can be found.
 - `UNIXNU_PAYLOAD` is now forwarded (`--unixnu`), but this tree does not
