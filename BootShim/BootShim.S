@@ -72,17 +72,26 @@ _Entry:
 #endif
   // Clean the relocated FD to the point of coherency, then drop stale
   // instruction cache lines before branching into it.
+  //
+  // CTR_EL0.DminLine is log2(words per line), so the byte stride is
+  // 4 << DminLine.  Clean the line containing each address and stop once
+  // the line containing the last FD byte has been cleaned; this works for
+  // any FD size and never touches a line after the image.
   mrs   x7, ctr_el0
   ubfx  x7, x7, #16, #4
   mov   x8, #4
   lsl   x7, x8, x7
   ldr   x6, =FD_BASE
   ldr   x8, =FD_SIZE
+  cbz   x8, 6f
+  add   x8, x8, x6
+  sub   x8, x8, #1
 5:
   dc    cvac, x6
   add   x6, x6, x7
-  subs  x8, x8, x7
-  b.ne  5b
+  cmp   x6, x8
+  b.ls  5b
+6:
   dsb   sy
   ic    iallu
   dsb   sy
