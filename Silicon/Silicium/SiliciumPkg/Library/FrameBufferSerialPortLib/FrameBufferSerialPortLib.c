@@ -151,6 +151,17 @@ GetFbPositions (
 
   // Pass Max Position
   *MaxPosition = LocalMaxPosition;
+
+  // The cursor is kept in the last bytes of the frame buffer. Those bytes may
+  // contain bootloader/splash data, or be overwritten by another frame buffer
+  // user, leaving a position outside the text area. Clear and restart instead
+  // of using it as a pixel offset.
+  if (((*CurrentPosition)->XPos >= LocalMaxPosition.XPos) ||
+      ((*CurrentPosition)->YPos >= LocalMaxPosition.YPos)) {
+    ZeroMem ((VOID *)(UINTN)FbBase, (UINTN)FB_WIDTH * FB_HEIGHT * FB_BPP);
+    (*CurrentPosition)->XPos = 0;
+    (*CurrentPosition)->YPos = 0;
+  }
 }
 
 VOID
