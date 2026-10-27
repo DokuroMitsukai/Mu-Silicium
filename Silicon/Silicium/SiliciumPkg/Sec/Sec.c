@@ -18,6 +18,14 @@
 
 #include "Sec.h"
 
+//
+// Mu-Silicium keeps the bootloader's x0 (the DTB pointer) for DXE drivers.
+// UniXNURamDiskDxe reads this HOB to publish the Android boot-image ramdisk.
+//
+STATIC CONST EFI_GUID  mEntryArgHobGuid = {
+  0xDAEE82E6, 0x8090, 0x4E72, { 0xBF, 0xB9, 0x78, 0xC1, 0x3C, 0xD4, 0xE3, 0x59 }
+};
+
 #ifndef MDEPKG_NDEBUG
 STATIC
 VOID
@@ -90,7 +98,9 @@ InitializeMemory (VOID)
 
 STATIC
 VOID
-SecMain (VOID)
+SecMain (
+  IN UINT64  EntryArg
+  )
 {
   EFI_STATUS Status;
 
@@ -116,6 +126,18 @@ SecMain (VOID)
   Status = InitializeMemory ();
   if (EFI_ERROR (Status)) {
     return;
+  }
+
+  // Publish the bootloader's x0 for DXE drivers that need the device tree.
+  if (EntryArg != 0) {
+    UINT64  *HobData;
+
+    HobData = BuildGuidHob (&mEntryArgHobGuid, sizeof (UINT64));
+    if (HobData != NULL) {
+      *HobData = EntryArg;
+    } else {
+      DEBUG ((DEBUG_ERROR, "Failed to build the entry argument HOB\n"));
+    }
   }
 
   // Build CPU HOB
@@ -163,6 +185,15 @@ SecEntry (VOID)
   InvalidateDataCacheRange ((VOID *)FixedPcdGet64 (PcdCPUCoresStackBase), FixedPcdGet32 (PcdCPUCorePrimaryStackSize));
   InvalidateDataCacheRange ((VOID *)FixedPcdGet64 (PcdFdBaseAddress),     FixedPcdGet32 (PcdFdSize));
 
+  // Save the DTB pointer at the bottom of the stack, outside the live frames,
+  // after the invalidates that would discard a normal local.
+  __asm__ volatile (
+    "mov x1, %0\n"
+    "str x19, [x1]\n"
+    :
+    : "r" ((UINT64)FixedPcdGet64 (PcdCPUCoresStackBase))
+    : "x1", "x19", "memory");
+
   // Verify Exception Vector Table
   ASSERT (((UINTN)SecVectorTable & ARM_VECTOR_TABLE_ALIGNMENT) == 0);
 
@@ -170,5 +201,5 @@ SecEntry (VOID)
   ArmWriteVBar ((UINTN)SecVectorTable);
 
   // Enter Main SEC Function
-  SecMain ();
+  SecMain (*(UINT64 *)(UINTN)FixedPcdGet64 (PcdCPUCoresStackBase));
 }

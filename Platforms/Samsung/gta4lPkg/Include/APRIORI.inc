@@ -26,6 +26,8 @@ APRIORI DXE {
   INF Binaries/gta4l/QcomPkg/Drivers/ShmBridgeDxe/ShmBridgeDxeLA.inf
   INF Binaries/gta4l/QcomPkg/Drivers/TzDxe/ScmDxeLA.inf
 
+  INF UniXNUPkg/Driver/UniXNURamDiskDxe/UniXNURamDiskDxe.inf
+
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
   INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
@@ -62,6 +64,7 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
   INF MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf
   INF MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
+  INF UniXNUPkg/Driver/UniXNUDxe/UniXNUDxe.inf
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
 
   INF Binaries/gta4l/QcomPkg/Drivers/I2CDxe/I2CDxe.inf

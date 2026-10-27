@@ -13,6 +13,9 @@
 .set CTRL_SPAN_BIT, BIT23
 
 ASM_FUNC (_ModuleEntryPoint)
+  // Keep the bootloader's x0 (the DTB pointer) across platform setup.
+  mov   x19, x0
+
   // Do Platform Specific Initialization
   bl    ASM_PFX (PlatformAssemblyInitialize)
 
@@ -50,7 +53,7 @@ ASM_PFX (MainEntryPoint):
   cmp   x0, x2
   b.lt  0b
 
-  // Set Jump Location
+  // Set Jump Location; the saved DTB pointer stays in x19 for SecMain.
   ldr   x0, =ASM_PFX (SecEntry)
 
   // Clear Frame Pointer

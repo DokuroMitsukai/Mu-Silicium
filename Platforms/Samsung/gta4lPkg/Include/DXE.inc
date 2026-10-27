@@ -83,6 +83,10 @@
   INF Binaries/gta4l/QcomPkg/Drivers/MacDxe/MacDxe.inf
   INF Binaries/gta4l/QcomPkg/SocPkg/KamortaPkg/Drivers/RNGDxe/RngDxe.inf
 
+  INF UniXNUPkg/Driver/UniXNURamDiskDxe/UniXNURamDiskDxe.inf
+  INF UniXNUPkg/Driver/UniXNUDxe/UniXNUDxe.inf
+  INF DarwinBootPkg/Driver/DarwinBoot.inf
+  INF UniXNUPkg/Application/UniXNU/UniXNU.inf
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
 
   INF Binaries/gta4l/QcomPkg/Drivers/PILDxe/PILDxe.inf
