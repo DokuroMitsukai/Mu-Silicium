@@ -65,6 +65,14 @@
   KeypadDeviceLib|hero2ltePkg/Library/KeypadDeviceLib/KeypadDeviceLib.inf
 
 !if $(UNIXNU_PAYLOAD) == 1
+[PcdsFixedAtBuild]
+  gUniXNUPkgTokenSpaceGuid.PcdUniXNUMenuKeyHints|L"Volume +/-: select    Power: boot    Home: stop timer"
+  # S-Boot copies the boot image ramdisk to 0x89000000 and never publishes
+  # /chosen linux,initrd-start: hand the payload range to UniXNURamDiskDxe.
+  gUniXNUPkgTokenSpaceGuid.PcdUniXNURamDiskBase|0x89000000
+  gUniXNUPkgTokenSpaceGuid.PcdUniXNURamDiskSize|0x01000000
+
+[LibraryClasses]
   # UniXNU package, supplied by the device build tree.
   UniXNULib|UniXNUPkg/Library/UniXNULib/UniXNULib.inf
   # DarwinBoot inflates the UEFI-compressed kernel from a boot image that does not fit the partition raw.

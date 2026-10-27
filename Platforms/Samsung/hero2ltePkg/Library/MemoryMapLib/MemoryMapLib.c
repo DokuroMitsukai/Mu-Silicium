@@ -13,6 +13,9 @@ gMemoryDescriptor[] = {
   {"UEFI FD",            0xB1200000, 0x00200000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
   {"UEFI Stack",         0xB1400000, 0x00040000, AddMem, SYS_MEM, SYS_MEM_CAP, BsData, WRITE_BACK},
   {"DXE Heap",           0xB1440000, 0x0EB00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK},
+  // S-Boot copies the boot image ramdisk here (sboot-analysis: 0x6b678-0x6b698).
+  // Reserved so it is mapped and no allocation or page table lands on the payload.
+  {"Payload Ramdisk",    0x89000000, 0x01000000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_BACK},
   {"Display Reserved",   0xE2A00000, 0x00E10000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH},
   {"RAM Partition",      0x880000000,0x80000000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK}, // 2GB
 
